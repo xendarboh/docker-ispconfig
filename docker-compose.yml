@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+
+  # $ docker exec -it apt-cacher-ng tail -f /var/log/apt-cacher-ng/apt-cacher.log
+  apt-cacher-ng:
+    profiles: ["build-support"]
+    # image: sameersbn/apt-cacher-ng
+    # 20220222: TODO: check for newer upstream image
+    image: gromain/apt-cacher-ng:autobuild
+    container_name: ${REPO}-apt-cacher-ng
+    init: true
+    ports:
+      - "3142:3142"
+    volumes:
+      - /tmp/${REPO}-apt-cacher-ng:/var/cache/apt-cacher-ng
+    restart: ${RESTART_POLICY}
+
+  ispconfig:
+    profiles: ["build", "run"]
+    image: ${REPO}/ispconfig-${HOSTNAME}:${TAG}
+    container_name: ${HOSTNAME}
+    hostname: ${HOSTNAME}
+    privileged: true
+    build:
+      context: .
+      args:
+        - DEV_DOCKERFILE=${DEV_DOCKERFILE}
+        - HOSTNAME=${HOSTNAME}
+        - LOCALE=${LOCALE}
+        - OPTIONS_ISPCONFIG=${OPTIONS_ISPCONFIG}
+        - PKGS=${PKGS}
+        - PORT_SSHD=${PORT_SSHD}
+        - VERSION_PHP=${VERSION_PHP}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - ${HOST_DIR}/etc:/etc
+      - ${HOST_DIR}/root/.acme.sh:/root/.acme.sh
+      - ${HOST_DIR}/srv:/srv
+      - ${HOST_DIR}/var/lib/mysql:/var/lib/mysql
+      - ${HOST_DIR}/var/log:/var/log
+      - ${HOST_DIR}/var/mail:/var/mail
+      - ${HOST_DIR}/var/vmail:/var/vmail
+      - ${HOST_DIR}/var/www:/var/www
+    restart: ${RESTART_POLICY}
+    network_mode: "host"
